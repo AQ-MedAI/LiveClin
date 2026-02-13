@@ -18,6 +18,8 @@ LiveClin: A Live Clinical Benchmark without Leakage
 
 ## Project Structure
 
+
+```
 LiveClin/
 ├── assets/                     # (optional) figures, logos, example outputs for documentation
 ├── data/                       # benchmark datasets (each release/period in its own folder)
@@ -32,6 +34,7 @@ LiveClin/
 ├── evaluate.py                 # controller script: start SGLang server -> run core.py -> stop server
 ├── stats_analyzer.py           # analyze evaluated results and generate summary reports
 └── README.md                   # documentation
+```
 
 
 
