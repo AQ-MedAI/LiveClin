@@ -18,24 +18,28 @@ LiveClin: A Live Clinical Benchmark without Leakage
 
 ## Project Structure
 
-、、、
-LiveClin/
-├── assets/
-├── data/
-│   ├── 2025H1/
-│   │   ├── 2025h1.jsonl
-│   │   └── images/                # unzip images.zip here
-│   └── ...                        # other releases/periods
-├── demo/
-│   ├── demo.jsonl
-│   └── images/
-├── api_client.py
-├── core.py
-├── evaluate.py
-├── stats_analyzer.py
-└── README.md
 
-、、、
+```bash
+   LiveClin/
+      ├── assets/                     # (optional) figures, logos, example outputs for documentation
+      ├── data/                       # benchmark datasets (each release/period in its own folder)
+      │   ├── 2025H1/                 # 2025 first-half dataset
+      │   │   ├── 2025h1.jsonl        # input JSONL
+      │   │   └── images/             # images referenced by the dataset JSON/JSONL (after unzip images.zip)
+      │   └── ...
+      ├── demo/                       # small demo dataset for quick testing
+      │   ├── demo.jsonl              # demo JSONL input
+      │   └── images/                 # images referenced by demo samples
+      ├── api_client.py               # api client
+      ├── core.py                     # core evaluation logic (reads JSONL, runs model inference, writes results back)
+      ├── evaluate.py                 # controller script: start SGLang server -> run core.py -> stop server
+      ├── stats_analyzer.py           # analyze evaluated results and generate summary reports
+      └── README.md                   # documentation
+```
+
+
+
+
 
 
 
