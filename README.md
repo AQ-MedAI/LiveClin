@@ -2,12 +2,12 @@
 LiveClin: A Live Clinical Benchmark without Leakage
 
 <p align="center">
-   📃 <a href="" target="_blank">Paper</a> • 🤗 <a href="" target="_blank">Dataset</a>
+   📃 <a href="https://arxiv.org/abs/2602.16747" target="_blank">Paper</a> • 🤗 <a href="" target="_blank">Dataset</a>
 
 
 ## 🌈 Update
-* **[2026.02.21]** [Paper]() released.
-* **[2026.02.10]** 🎉🎉🎉 LiveClin is published！🎉🎉🎉
+* **[2026.02.21]** [Paper](https://arxiv.org/abs/2602.16747) released.
+* **[2026.02.15]** 🎉🎉🎉 LiveClin is published！🎉🎉🎉
 
 
 ## Results
@@ -18,8 +18,7 @@ LiveClin: A Live Clinical Benchmark without Leakage
 
 ## Project Structure
 
-
-```
+、、、
 LiveClin/
 ├── assets/                     # (optional) figures, logos, example outputs for documentation
 ├── data/                       # benchmark datasets (each release/period in its own folder)
@@ -30,11 +29,12 @@ LiveClin/
 ├── demo/                       # small demo dataset for quick testing
 │   ├── demo.jsonl              # demo JSONL input
 │   └── images/                 # images referenced by demo samples
+├── api_client.py               # api client
 ├── core.py                     # core evaluation logic (reads JSONL, runs model inference, writes results back)
 ├── evaluate.py                 # controller script: start SGLang server -> run core.py -> stop server
 ├── stats_analyzer.py           # analyze evaluated results and generate summary reports
 └── README.md                   # documentation
-```
+、、、
 
 
 
@@ -61,3 +61,20 @@ LiveClin/
    ```bash
    python stats_analyzer.py
    ```
+
+
+
+##  Citation
+Please use the following citation if you intend to use our dataset for training or evaluation:
+
+```
+@misc{wang2026liveclinliveclinicalbenchmark,
+      title={LiveClin: A Live Clinical Benchmark without Leakage}, 
+      author={Xidong Wang and Shuqi Guo and Yue Shen and Junying Chen and Jian Wang and Jinjie Gu and Ping Zhang and Lei Liu and Benyou Wang},
+      year={2026},
+      eprint={2602.16747},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2602.16747}, 
+}
+```
