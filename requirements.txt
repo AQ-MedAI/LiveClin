@@ -1,0 +1,5 @@
+openai>=1.0
+tenacity>=8.0
+tqdm>=4.60
+huggingface_hub>=0.20
+requests>=2.28

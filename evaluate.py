@@ -1,191 +1,176 @@
-import os
+#!/usr/bin/env python3
+"""
+LiveClin Evaluation CLI
+=======================
+Single entry-point for evaluating a model on the LiveClin benchmark.
+
+Usage examples:
+
+  # Evaluate via a remote API (images sent as URLs)
+  python evaluate.py \\
+      --model gpt-4o \\
+      --api-base https://api.openai.com/v1 \\
+      --api-key sk-xxx \\
+      --image-mode url
+
+  # Evaluate a locally-served model (images sent as base64)
+  python evaluate.py \\
+      --model Qwen2.5-VL-7B-Instruct \\
+      --api-base http://localhost:8000/v1 \\
+      --api-key token-xxx \\
+      --image-mode local
+
+  # With all options
+  python evaluate.py \\
+      --model gpt-4o \\
+      --api-base https://api.openai.com/v1 \\
+      --api-key sk-xxx \\
+      --image-mode url \\
+      --dataset 2025_H1 \\
+      --concurrency 50 \\
+      --output results/gpt-4o.json \\
+      --resume
+"""
+
+import argparse
+import asyncio
 import sys
-import subprocess
-import time
-import requests
 from pathlib import Path
 
-# =============================================================================
-# 1. Global Configuration (edit for your environment)
-# =============================================================================
+from liveclin import EvalConfig
+from liveclin.analyzer import analyze, print_summary
+from liveclin.data import ensure_dataset, get_image_root, load_cases
+from liveclin.runner import run_evaluation, _save_results
 
-EVALUATE_SCRIPT_PATH = os.getenv("EVALUATE_SCRIPT_PATH", "core.py")
 
-# NOW: a single JSONL file (not a folder)
-JSONL_PATH = os.getenv("JSONL_PATH", "demo/demo.jsonl")  # path to *.jsonl
-IMAGE_ROOT_PATH = os.getenv("IMAGE_ROOT_PATH", "demo/images")  # set to "" if not needed
+def parse_args() -> EvalConfig:
+    p = argparse.ArgumentParser(
+        description="LiveClin: evaluate a model on the clinical benchmark.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python evaluate.py --model gpt-4o --api-base https://api.openai.com/v1 "
+            "--api-key sk-xxx --image-mode url\n"
+            "  python evaluate.py --model Qwen2.5-VL-7B --api-base http://localhost:8000/v1 "
+            "--api-key token --image-mode local\n"
+        ),
+    )
 
-HOST = os.getenv("SGLANG_HOST", "127.0.0.1")
-PORT = int(os.getenv("SGLANG_PORT", "30000"))
-API_BASE_URL = f"http://{HOST}:{PORT}/v1"
-LOG_LEVEL = os.getenv("SGLANG_LOG_LEVEL", "info")
+    # Required
+    p.add_argument("--model", required=True,
+                   help="Model name (must match the API's model identifier).")
+    p.add_argument("--api-base", required=True,
+                   help="API base URL (e.g. https://api.openai.com/v1).")
+    p.add_argument("--api-key", required=True,
+                   help="API key for authentication.")
+    p.add_argument("--image-mode", required=True, choices=["url", "local"],
+                   help="How to send images: 'url' passes image URLs; "
+                        "'local' reads files and sends base64.")
 
-# =============================================================================
-# 2. Model configuration list
-# =============================================================================
+    # Optional
+    p.add_argument("--dataset", default="2025_H1",
+                   help="Dataset config name (default: 2025_H1).")
+    p.add_argument("--concurrency", type=int, default=50,
+                   help="Max concurrent case evaluations (default: 50).")
+    p.add_argument("--output", default=None,
+                   help="Output JSON path (default: results/<model>_<dataset>.json).")
+    p.add_argument("--resume", action="store_true",
+                   help="Resume from an existing results file.")
+    p.add_argument("--data-dir", default="data",
+                   help="Local directory for dataset storage (default: data).")
+    p.add_argument("--jsonl-path", default=None,
+                   help="Override: path to a JSONL file (skips auto-download).")
+    p.add_argument("--image-root", default=None,
+                   help="Override: path to the image directory.")
+    p.add_argument("--temperature", type=float, default=0.0,
+                   help="Sampling temperature (default: 0.0).")
+    p.add_argument("--max-tokens", type=int, default=16384,
+                   help="Max tokens per response (default: 16384).")
+    p.add_argument("--max-retries", type=int, default=3,
+                   help="Max API call retries (default: 3).")
+    p.add_argument("--timeout", type=float, default=120.0,
+                   help="API call timeout in seconds (default: 120).")
+    p.add_argument("--verbose", action="store_true",
+                   help="Enable verbose logging.")
 
-MODELS_TO_TEST = [
-    {
-        "name": "Qwen2.5-VL-7B",
-        "path": "/path/to/Qwen2.5-VL-7B-Instruct",
-        "tp": 2, "dp": 4,
-        "api_id": "Qwen2.5-VL-7B-Instruct" # 这个ID将传递给测试脚本
-    },
-    # {
-    #     "name": "GLM-4.1V-9B",
-    #     "path": "/path/to/GLM-4.1V-9B",
-    #     "tp": 2, "dp": 4,
-    #     "api_id": "GLM-4.1V-9B"
-    # },
-    # {
-    #     "name": "HuatuoGPT-Vision-7B",
-    #     "path": "/path/to/HuatuoGPT-Vision-7B",
-    #     "tp": 2, "dp": 4,
-    #     "api_id": "HuatuoGPT-Vision-7B"
-    # },
-    # {
-    #     "name": "InternVL3_5-8B",
-    #     "path": "/path/to/InternVL3_5-8B",
-    #     "tp": 2, "dp": 4,
-    #     "api_id": "InternVL3_5-8B"
-    # },
-    # Add more models similarly, using env vars for paths and settings.
-]
+    args = p.parse_args()
 
-# =============================================================================
-# 3. Helper functions
-# =============================================================================
+    return EvalConfig(
+        model=args.model,
+        api_base=args.api_base,
+        api_key=args.api_key,
+        image_mode=args.image_mode,
+        dataset=args.dataset,
+        concurrency=args.concurrency,
+        output=args.output,
+        resume=args.resume,
+        data_dir=args.data_dir,
+        jsonl_path=args.jsonl_path,
+        image_root=args.image_root,
+        temperature=args.temperature,
+        max_tokens=args.max_tokens,
+        max_retries=args.max_retries,
+        timeout=args.timeout,
+        verbose=args.verbose,
+    )
 
-def wait_for_server_ready(api_base_url: str, timeout: int = 300) -> bool:
-    print(f"\nWaiting for server to be ready at {api_base_url} ...")
-    start_time = time.time()
 
-    while time.time() - start_time < timeout:
-        try:
-            resp = requests.get(f"{api_base_url}/models", timeout=5)
-            if resp.status_code == 200:
-                print(f"Server is ready! (took {time.time() - start_time:.1f}s)")
-                return True
-        except requests.RequestException:
-            pass
-        time.sleep(5)
+async def main_async(config: EvalConfig) -> None:
+    # 1. Resolve data paths (explicit overrides take priority)
+    if config.jsonl_path:
+        jsonl_path = Path(config.jsonl_path)
+        if not jsonl_path.is_file():
+            print(f"Error: --jsonl-path not found: {jsonl_path}")
+            sys.exit(1)
+    else:
+        jsonl_path = ensure_dataset(config.data_dir, config.dataset)
 
-    print(f"Server failed to start within {timeout} seconds.")
-    return False
+    if config.image_root:
+        image_root = Path(config.image_root)
+    else:
+        image_root = get_image_root(config.data_dir, config.dataset)
 
-# =============================================================================
-# 4. Main execution flow
-# =============================================================================
+    if config.image_mode == "local" and not image_root.is_dir():
+        print(f"Warning: image directory not found at {image_root}")
+        print("Local images may not be available. Consider using --image-mode url.")
+
+    # 2. Load cases
+    cases = load_cases(jsonl_path)
+    print(f"Loaded {len(cases)} cases from {jsonl_path}")
+
+    # 3. Run evaluation
+    results = await run_evaluation(cases, config, image_root)
+
+    # 4. Analyze and print summary
+    results = analyze(results)
+    _save_results(results, config.output_path)
+    print_summary(results)
+
+    print(f"Detailed results: {config.output_path}")
+
 
 def main() -> None:
-    jsonl_path = Path(JSONL_PATH)
-    if not jsonl_path.is_file():
-        raise FileNotFoundError(f"JSONL_PATH not found: {jsonl_path}")
+    config = parse_args()
 
-    for model_config in MODELS_TO_TEST:
-        model_name = model_config["name"]
-        print("\n" + "=" * 80)
-        print(f"STARTING TEST FOR MODEL: {model_name}")
-        print("=" * 80 + "\n")
+    print()
+    print("LiveClin Evaluation")
+    print("=" * 50)
+    print(f"  Model:      {config.model}")
+    print(f"  API Base:   {config.api_base}")
+    print(f"  Image Mode: {config.image_mode}")
+    print(f"  Dataset:    {config.dataset}")
+    print(f"  Concurrency:{config.concurrency}")
+    print(f"  Output:     {config.output_path}")
+    print(f"  Resume:     {config.resume}")
+    print("=" * 50)
+    print()
 
-        # 1) Launch SGLang server
-        launch_cmd = [
-            sys.executable,
-            "-m", "sglang.launch_server",
-            "--model-path", model_config["path"],
-            "--tp", str(model_config["tp"]),
-            "--dp", str(model_config["dp"]),
-            "--port", str(PORT),
-            "--trust-remote-code",
-            "--enable-multimodal",
-            "--log-level", LOG_LEVEL,
-        ]
+    try:
+        asyncio.run(main_async(config))
+    except KeyboardInterrupt:
+        print("\nInterrupted. Partial results have been saved.")
+        sys.exit(1)
 
-        print(f"Launching SGLang server for {model_name}...")
-        print(f"Command: {' '.join(launch_cmd)}")
-
-        log_dir = Path("logs")
-        log_dir.mkdir(exist_ok=True)
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        safe_name = model_name.replace(" ", "_").replace("/", "_")
-        log_file_path = log_dir / f"{safe_name}_{timestamp}.log"
-
-        log_file = open(log_file_path, "w", encoding="utf-8")
-        server_process = subprocess.Popen(
-            launch_cmd,
-            stdout=log_file,
-            stderr=log_file,
-            text=True,
-        )
-        print(f"Server log redirected to: {log_file_path}")
-
-        server_ready = False
-
-        try:
-            # 2) Wait for server readiness
-            if not wait_for_server_ready(API_BASE_URL):
-                raise RuntimeError("Server readiness check failed.")
-            server_ready = True
-
-            # 3) Run evaluation script (JSONL input)
-            print(f"\nRunning evaluation script for model API ID: {model_config['api_id']} ...")
-
-            eval_cmd = [
-                sys.executable, EVALUATE_SCRIPT_PATH,
-                "--jsonl-path", str(jsonl_path),            
-                "--model-api-id", model_config["api_id"],
-                "--api-base-url", API_BASE_URL,
-                "--resume",
-                "--non-interactive",
-            ]
-
-            if IMAGE_ROOT_PATH:
-                eval_cmd.extend(["--image-root-path", IMAGE_ROOT_PATH])
-
-            eval_process = subprocess.Popen(
-                eval_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
-
-            print("\n--- Evaluation Script Output ---")
-            assert eval_process.stdout is not None
-            for line in iter(eval_process.stdout.readline, ""):
-                print(line, end="")
-            eval_process.wait()
-            print("\n--- End of Evaluation Script Output ---\n")
-
-            if eval_process.returncode != 0:
-                print(f"WARNING: evaluation exited with code {eval_process.returncode}")
-
-        except Exception as e:
-            print(f"\nERROR during process for {model_name}: {e}")
-            if not server_ready:
-                print("The server may have failed to start. Check the log file for details.")
-
-        finally:
-            # 4) Shutdown server
-            if server_process and server_process.poll() is None:
-                print(f"\nShutting down server for {model_name} (PID: {server_process.pid})...")
-                server_process.terminate()
-                try:
-                    server_process.wait(timeout=10)
-                    print("Server shut down gracefully.")
-                except subprocess.TimeoutExpired:
-                    print("Server did not respond; forcing kill...")
-                    server_process.kill()
-                    server_process.wait()
-                    print("Server killed.")
-
-            if log_file:
-                log_file.close()
-
-            print("\nWaiting 10 seconds for GPU resources to be released...")
-            time.sleep(10)
-
-    print("\nAll model tests completed!")
 
 if __name__ == "__main__":
     main()
