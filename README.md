@@ -1,4 +1,4 @@
-# [ICLR'26] LiveClin
+# [ICLR'26] LiveClin: A Live Clinical Benchmark without Leakage
 
 <p align="center">
    📃 <a href="https://arxiv.org/abs/2602.16747" target="_blank">Paper</a> &bull;
