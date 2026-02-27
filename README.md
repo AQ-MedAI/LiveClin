@@ -17,7 +17,7 @@
 
 ## Updates 🔔
 
-* **[2026.02.27]** Evaluation framework refactored — single CLI entry-point, auto-download from HuggingFace, fine-grained analysis.
+* **[2026.02.27]** Evaluation framework refactored.
 * **[2026.02.21]** [Paper](https://arxiv.org/abs/2602.16747) released.
 * **[2026.02.15]** LiveClin is published!
 
