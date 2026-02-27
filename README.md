@@ -80,7 +80,7 @@ A single command downloads the dataset (on first run) and runs the full pipeline
 ```bash
 # Remote API — images sent as URLs
 python evaluate.py \
-    --model gpt-4o \
+    --model gpt-5 \
     --api-base https://api.openai.com/v1 \
     --api-key sk-xxx \
     --image-mode url
@@ -105,7 +105,7 @@ Example terminal output:
 
 ```
 ============================================================
-  LiveClin Results: gpt-4o (2025_H1)
+  LiveClin Results: GPT-5 (2025_H1)
 ============================================================
   Question Accuracy:  5230/6605 (79.2%)
   Case Accuracy:      449/1407 (31.9%)
@@ -135,7 +135,7 @@ Verify the model can see images before running a full evaluation:
 
 ```bash
 python scripts/test_vision.py \
-    --model gpt-4o \
+    --model gpt-5 \
     --api-base https://api.openai.com/v1 \
     --api-key sk-xxx
 ```
@@ -235,7 +235,7 @@ The framework applies a three-layer retry strategy for robust evaluation under u
 
 ```bash
 # Resume after a run with transient failures
-python evaluate.py --model gpt-4o --api-base ... --api-key ... --image-mode url --resume
+python evaluate.py --model gpt-5 --api-base ... --api-key ... --image-mode url --resume
 ```
 
 ## Output Format
@@ -245,7 +245,7 @@ Results are saved as a single JSON file (default: `results/<model>_<dataset>.jso
 ```json
 {
   "meta": {
-    "model": "gpt-4o",
+    "model": "gpt-5",
     "dataset": "2025_H1",
     "image_mode": "url",
     "started_at": "...",
