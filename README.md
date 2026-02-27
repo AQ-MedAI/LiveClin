@@ -1,5 +1,5 @@
 # LiveClin
-** LiveClin: A Live Clinical Benchmark without Leakage** 
+**LiveClin: A Live Clinical Benchmark without Leakage** 
 
 
 ![LiveClin_logo](assets/logo.png)
