@@ -8,13 +8,13 @@
    💻 <a href="https://github.com/AQ-MedAI/LiveClin" target="_blank">Code</a>
 </p>
 
-## Updates
+## Updates 🔔
 
 * **[2026.02.27]** Evaluation framework refactored — single CLI entry-point, auto-download from HuggingFace, fine-grained analysis.
 * **[2026.02.21]** [Paper](https://arxiv.org/abs/2602.16747) released.
 * **[2026.02.15]** LiveClin is published!
 
-## Overview
+## Overview 📋
 
 LiveClin is a contamination-free, continuously updated clinical benchmark for evaluating large language / vision-language models on realistic, **multi-stage clinical case reasoning** with medical images. Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up.
 
@@ -29,8 +29,7 @@ LiveClin is a contamination-free, continuously updated clinical benchmark for ev
 | Rare cases              | 1,181 (84%)   |
 | Non-rare cases          | 226 (16%)     |
 
-
-## Project Structure
+## Project Structure 🏗️
 
 ```
 LiveClin/
@@ -49,15 +48,19 @@ LiveClin/
 └── README.md
 ```
 
+## Results 📊
 
-
-## Results
-
-Performance comparison of representative models on LiveClin 2025_H1 (question accuracy %):
+Overall case accuracy, with models grouped by family and ordered reverse-chronologically. Bar textures indicate model type; dashed lines represent physician reference levels.
 
 ![LiveClin_result1](assets/result.png)
 
-## Quick Start
+## Data Example 🩺
+
+An example from LiveClin simulating the entire clinical pathway. The case progresses from initial assessment to long-term management, with new clinical information and diverse imaging modalities (e.g., X-ray, MRI, pathology, CT) progressively introduced at each key decision point.
+
+![LiveClin_example](assets/example.png)
+
+## Quick Start 🚀
 
 ### 1. Install
 
@@ -89,13 +92,14 @@ python evaluate.py \
     --image-mode local
 ```
 
-What happens:
-1. The dataset is auto-downloaded from [HuggingFace](https://huggingface.co/datasets/AQ-MedAI/LiveClin) (only the requested config, cached for future runs)
-2. All cases are evaluated concurrently via multi-turn conversation
-3. A structured summary is printed to the terminal
-4. Detailed results with fine-grained analysis are saved to JSON
+The evaluation pipeline will:
+1. Auto-download the dataset from [HuggingFace](https://huggingface.co/datasets/AQ-MedAI/LiveClin) (only the requested config, cached for future runs)
+2. Evaluate all cases concurrently via multi-turn conversation
+3. Print a structured summary to the terminal
+4. Save detailed results with fine-grained analysis to JSON
 
-Example terminal output:
+<details>
+<summary><b>Example terminal output</b></summary>
 
 ```
 ============================================================
@@ -123,9 +127,11 @@ Example terminal output:
 ============================================================
 ```
 
-### 3. Optional: Test Vision
+</details>
 
-Verify the model can see images before running a full evaluation:
+### 3. Test Vision (Optional)
+
+Verify the model can perceive images before running a full evaluation:
 
 ```bash
 python scripts/test_vision.py \
@@ -134,24 +140,24 @@ python scripts/test_vision.py \
     --api-key sk-xxx
 ```
 
-### 4. Optional: Self-Hosted Models
+### 4. Self-Hosted Models (Optional)
 
 Deploy your own model with [SGLang](https://github.com/sgl-project/sglang) to expose an OpenAI-compatible API:
 
 ```bash
-# Terminal 1 — start the server
+# Terminal 1 — launch the model server
 python scripts/serve_sglang.py \
     --model-path /path/to/your-model \
     --tp 2 --dp 4 --port 8000
 
-# Terminal 2 — evaluate
+# Terminal 2 — run evaluation
 python evaluate.py \
     --model your-model-name \
     --api-base http://localhost:8000/v1 \
     --image-mode local
 ```
 
-## CLI Reference
+## CLI Reference ⚙️
 
 | Flag            | Description                              | Default   |
 | --------------- | ---------------------------------------- | --------- |
@@ -171,7 +177,7 @@ python evaluate.py \
 | `--jsonl-path`  | Override: direct path to JSONL file      | —         |
 | `--image-root`  | Override: direct path to image directory | —         |
 
-## Data
+## Data 📦
 
 ### Auto-Download (Default)
 
@@ -190,13 +196,13 @@ git clone https://huggingface.co/datasets/AQ-MedAI/LiveClin /path/to/liveclin-da
 python -c "from huggingface_hub import snapshot_download; snapshot_download('AQ-MedAI/LiveClin', repo_type='dataset', local_dir='/path/to/liveclin-data')"
 ```
 
-Then point the evaluator to your data:
+Then point the evaluator to your local copy:
 
 ```bash
-# Option 1: set the data root (auto-resolves internal structure)
+# Set the data root (auto-resolves internal structure)
 python evaluate.py ... --data-dir /path/to/liveclin-data
 
-# Option 2: point directly to specific files (highest priority)
+# Or point directly to specific files (highest priority)
 python evaluate.py ... --jsonl-path /path/to/2025_H1.jsonl --image-root /path/to/image/
 ```
 
@@ -217,7 +223,7 @@ for mcq in fp["mcqs"]:
     print(f"  Answer: {mcq['correct_answer']}")
 ```
 
-## Retry & Resume
+## Retry & Resume 🔄
 
 The framework applies a three-layer retry strategy for robust evaluation under unstable network conditions:
 
@@ -232,7 +238,7 @@ The framework applies a three-layer retry strategy for robust evaluation under u
 python evaluate.py --model gpt-5 --api-base ... --api-key ... --image-mode url --resume
 ```
 
-## Output Format
+## Output Format 📄
 
 Results are saved as a single JSON file (default: `results/<model>_<dataset>.json`):
 
@@ -272,9 +278,7 @@ Results are saved as a single JSON file (default: `results/<model>_<dataset>.jso
 | **Image Modality**    | 11 types     | X-ray, CT, MRI, Ultrasound, Clinical Photo, Endoscopy, Angiography, PET & SPECT, Pathology, Biosignals, Diagram & Plot |
 | **Table Modality**    | 9 types      | Lab Results, Medications, Demographics, Monitoring, Literature, Genomics, Pathology & IHC, Procedures, Staging Systems |
 
-
-
-## Citation
+## Citation 📝
 
 If you find LiveClin useful, please cite:
 
