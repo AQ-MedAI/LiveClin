@@ -8,6 +8,11 @@ Usage:
       --api-base https://api.openai.com/v1 \
       --api-key sk-xxx
 
+  # Local deployment (--api-key can be omitted):
+  python scripts/test_vision.py \
+      --model your-model \
+      --api-base http://localhost:8000/v1
+
 Tests performed:
   1. LOCAL mode  – generates a solid-yellow PNG, sends as base64,
                    asks the model what color the image is.
@@ -158,7 +163,7 @@ async def main() -> None:
     )
     p.add_argument("--model", required=True, help="Model name.")
     p.add_argument("--api-base", required=True, help="API base URL.")
-    p.add_argument("--api-key", required=True, help="API key.")
+    p.add_argument("--api-key", default="token", help="API key (omit for local deployments).")
     p.add_argument("--timeout", type=float, default=60.0, help="Timeout (s).")
     args = p.parse_args()
 

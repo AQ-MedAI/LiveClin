@@ -140,10 +140,16 @@ The evaluation pipeline will:
 Verify the model can perceive images before running a full evaluation:
 
 ```bash
+# Remote API
 python scripts/test_vision.py \
     --model gpt-5 \
     --api-base https://api.openai.com/v1 \
     --api-key sk-xxx
+
+# Local deployment (--api-key can be omitted)
+python scripts/test_vision.py \
+    --model your-model \
+    --api-base http://localhost:8000/v1
 ```
 
 ### 4. Self-Hosted Models (Optional)
@@ -260,8 +266,8 @@ Results are saved as a single JSON file (default: `results/<model>_<dataset>.jso
   "summary": {
     "total_cases": 1407,
     "total_mcqs": 6605,
-    "question_accuracy": 0.792,
-    "case_accuracy": 0.319,
+    "question_accuracy": ...,
+    "case_accuracy": ...,
     "by_rarity":          { "rare": {...}, "unrare": {...} },
     "by_chapter":         { "Chapter 2: Neoplasms": {...}, ... },
     "by_stage":           { "Presentation & Assessment": {...}, ... },
