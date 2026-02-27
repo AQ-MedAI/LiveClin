@@ -16,7 +16,7 @@
 
 ## Overview 📋
 
-LiveClin is a contamination-free, continuously updated clinical benchmark for evaluating large language / vision-language models on realistic, **multi-stage clinical case reasoning** with medical images. Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up.
+LiveClin is a contamination-free, biannually updated clinical benchmark for evaluating large vision-language models on realistic, **multi-stage clinical case reasoning** with medical images and tables. Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up. 
 
 | Statistic               | 2025_H1       |
 | ----------------------- | ------------- |
@@ -55,10 +55,7 @@ LiveClin/
 
 ## Results 📊
 
-<details>
-<summary><b>Overall case accuracy, with models grouped by family and ordered reverse-chronologically</b></summary>
-
-Bar textures indicate model type; dashed lines represent physician reference levels.
+Overall case accuracy, showing models grouped by family and ordered reverse chronologically. Bar textures indicate model type and dashed lines represent physician reference levels.
 
 ![LiveClin_result1](assets/result.png)
 
