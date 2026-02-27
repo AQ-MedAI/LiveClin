@@ -29,12 +29,6 @@ LiveClin is a contamination-free, continuously updated clinical benchmark for ev
 | Rare cases              | 1,181 (84%)   |
 | Non-rare cases          | 226 (16%)     |
 
-## Key Features
-
-- **Single-command evaluation** — one CLI call handles data download, multi-turn evaluation, and analysis
-- **Multi-turn conversation** — each case is evaluated as a sequential dialogue; later questions build on prior context
-- **Multimodal support** — images sent as URLs (`--image-mode url`) or encoded as base64 from local files (`--image-mode local`)
-- **Fine-grained analysis** — results broken down by rarity, ICD-10 chapter, clinical stage, question position, image modality, and table modality
 
 ## Project Structure
 
