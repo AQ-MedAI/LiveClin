@@ -1,17 +1,19 @@
 # LiveClin
 **LiveClin: A Live Clinical Benchmark without Leakage** 
 
+<p align="center">
+   📃 <a href="https://arxiv.org/abs/2602.16747" target="_blank">Paper</a> &bull;
+   🤗 <a href="https://huggingface.co/datasets/AQ-MedAI/LiveClin" target="_blank">Dataset</a> &bull;
+   💻 <a href="https://github.com/AQ-MedAI/LiveClin" target="_blank">Code</a>
+</p>
+
 
 ![LiveClin_logo](assets/logo.png)
 
 - LiveClin is a contamination-free, biannually updated clinical benchmark for evaluating large vision-language models on realistic, **multi-stage clinical case reasoning** with medical images and tables. 
 - Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up. 
 
-<p align="center">
-   📃 <a href="https://arxiv.org/abs/2602.16747" target="_blank">Paper</a> &bull;
-   🤗 <a href="https://huggingface.co/datasets/AQ-MedAI/LiveClin" target="_blank">Dataset</a> &bull;
-   💻 <a href="https://github.com/AQ-MedAI/LiveClin" target="_blank">Code</a>
-</p>
+
 
 ## Updates 🔔
 
