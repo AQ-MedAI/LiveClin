@@ -26,6 +26,7 @@ def ensure_dataset(data_dir: str, dataset: str) -> Path:
             repo_id=HF_REPO_ID,
             repo_type="dataset",
             local_dir=data_dir,
+            allow_patterns=[f"data/{dataset}/*", f"data/{dataset}/**"],
         )
     except ImportError:
         raise RuntimeError(

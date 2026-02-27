@@ -27,7 +27,7 @@ Usage examples:
       --api-key sk-xxx \\
       --image-mode url \\
       --dataset 2025_H1 \\
-      --concurrency 50 \\
+      --concurrency 100 \\
       --output results/gpt-4o.json \\
       --resume
 """
@@ -40,7 +40,7 @@ from pathlib import Path
 from liveclin import EvalConfig
 from liveclin.analyzer import analyze, print_summary
 from liveclin.data import ensure_dataset, get_image_root, load_cases
-from liveclin.runner import run_evaluation, _save_results
+from liveclin.runner import run_evaluation, save_results
 
 
 def parse_args() -> EvalConfig:
@@ -61,8 +61,9 @@ def parse_args() -> EvalConfig:
                    help="Model name (must match the API's model identifier).")
     p.add_argument("--api-base", required=True,
                    help="API base URL (e.g. https://api.openai.com/v1).")
-    p.add_argument("--api-key", required=True,
-                   help="API key for authentication.")
+    p.add_argument("--api-key", default="token",
+                   help="API key for authentication (default: 'token'; "
+                        "not needed for local SGLang deployments).")
     p.add_argument("--image-mode", required=True, choices=["url", "local"],
                    help="How to send images: 'url' passes image URLs; "
                         "'local' reads files and sends base64.")
@@ -70,8 +71,8 @@ def parse_args() -> EvalConfig:
     # Optional
     p.add_argument("--dataset", default="2025_H1",
                    help="Dataset config name (default: 2025_H1).")
-    p.add_argument("--concurrency", type=int, default=50,
-                   help="Max concurrent case evaluations (default: 50).")
+    p.add_argument("--concurrency", type=int, default=100,
+                   help="Max concurrent case evaluations (default: 100).")
     p.add_argument("--output", default=None,
                    help="Output JSON path (default: results/<model>_<dataset>.json).")
     p.add_argument("--resume", action="store_true",
@@ -86,8 +87,8 @@ def parse_args() -> EvalConfig:
                    help="Sampling temperature (default: 0.0).")
     p.add_argument("--max-tokens", type=int, default=16384,
                    help="Max tokens per response (default: 16384).")
-    p.add_argument("--max-retries", type=int, default=3,
-                   help="Max API call retries (default: 3).")
+    p.add_argument("--max-retries", type=int, default=5,
+                   help="Max retries per API call (default: 5).")
     p.add_argument("--timeout", type=float, default=120.0,
                    help="API call timeout in seconds (default: 120).")
     p.add_argument("--verbose", action="store_true",
@@ -143,7 +144,7 @@ async def main_async(config: EvalConfig) -> None:
 
     # 4. Analyze and print summary
     results = analyze(results)
-    _save_results(results, config.output_path)
+    save_results(results, config.output_path)
     print_summary(results)
 
     print(f"Detailed results: {config.output_path}")

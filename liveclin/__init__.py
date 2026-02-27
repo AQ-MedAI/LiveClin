@@ -13,8 +13,8 @@ class EvalConfig:
     api_key: str
     image_mode: str  # "url" | "local"
     dataset: str = "2025_H1"
-    concurrency: int = 50
-    max_retries: int = 3
+    concurrency: int = 100
+    max_retries: int = 5
     retry_delay: float = 1.0
     timeout: float = 120.0
     temperature: float = 0.0

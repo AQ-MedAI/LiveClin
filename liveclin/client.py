@@ -2,32 +2,38 @@
 
 import base64
 import mimetypes
-import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import openai
 from tenacity import (
     retry,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_after_attempt,
-    wait_fixed,
+    wait_exponential,
 )
 
 from . import EvalConfig
 
 MAX_BASE64_BYTES = 20 * 1024 * 1024
 
-RETRYABLE = (
-    openai.APITimeoutError,
-    openai.APIConnectionError,
-    openai.RateLimitError,
-    openai.InternalServerError,
-)
+
+def _is_retryable(exc: BaseException) -> bool:
+    """Retry on transient errors: timeouts, connection issues, rate limits, 5xx."""
+    if isinstance(exc, (openai.APITimeoutError, openai.APIConnectionError)):
+        return True
+    if isinstance(exc, openai.RateLimitError):
+        return True
+    if isinstance(exc, openai.APIStatusError) and exc.status_code >= 500:
+        return True
+    return False
 
 
 class APIClient:
-    """Stateless async client for one evaluation session."""
+    """Async client wrapping a shared AsyncOpenAI connection with per-instance history."""
+
+    _shared_openai: Optional[openai.AsyncOpenAI] = None
+    _shared_config_key: Optional[str] = None
 
     def __init__(self, config: EvalConfig):
         self.model = config.model
@@ -36,16 +42,33 @@ class APIClient:
         self.retry_attempts = config.max_retries
         self.retry_wait = config.retry_delay
 
-        self.async_client = openai.AsyncOpenAI(
-            api_key=config.api_key,
-            base_url=config.api_base,
-            timeout=config.timeout,
-            max_retries=0,
-        )
+        config_key = f"{config.api_base}|{config.api_key}|{config.timeout}"
+        if APIClient._shared_openai is None or APIClient._shared_config_key != config_key:
+            APIClient._shared_openai = openai.AsyncOpenAI(
+                api_key=config.api_key,
+                base_url=config.api_base,
+                timeout=config.timeout,
+                max_retries=0,
+            )
+            APIClient._shared_config_key = config_key
+
+        self.async_client = APIClient._shared_openai
         self.history: List[Dict[str, Any]] = []
 
     def clear_history(self) -> None:
         self.history = []
+
+    def fork(self) -> "APIClient":
+        """Create a lightweight copy sharing the same connection but with fresh history."""
+        clone = object.__new__(APIClient)
+        clone.model = self.model
+        clone.temperature = self.temperature
+        clone.max_tokens = self.max_tokens
+        clone.retry_attempts = self.retry_attempts
+        clone.retry_wait = self.retry_wait
+        clone.async_client = self.async_client
+        clone.history = []
+        return clone
 
     # ------------------------------------------------------------------
     # Image encoding
@@ -125,8 +148,8 @@ class APIClient:
 
         retrying_call = retry(
             stop=stop_after_attempt(self.retry_attempts),
-            wait=wait_fixed(self.retry_wait),
-            retry=retry_if_exception_type(RETRYABLE),
+            wait=wait_exponential(multiplier=self.retry_wait, min=1, max=60),
+            retry=retry_if_exception(_is_retryable),
             reraise=True,
         )(self._call)
 

@@ -8,15 +8,15 @@
    💻 <a href="https://github.com/AQ-MedAI/LiveClin" target="_blank">Code</a>
 </p>
 
-## Update
+## Updates
 
-* **[2026.02.27]** Evaluation framework refactored — single CLI entry-point, auto-download from HuggingFace, streamlined results.
+* **[2026.02.27]** Evaluation framework refactored — single CLI entry-point, auto-download from HuggingFace, fine-grained analysis.
 * **[2026.02.21]** [Paper](https://arxiv.org/abs/2602.16747) released.
 * **[2026.02.15]** LiveClin is published!
 
 ## Overview
 
-LiveClin is a contamination-free, continuously updated clinical benchmark for evaluating large language / vision-language models on realistic, multi-stage clinical case reasoning with medical images.
+LiveClin is a contamination-free, continuously updated clinical benchmark for evaluating large language / vision-language models on realistic, **multi-stage clinical case reasoning** with medical images. Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up.
 
 | Statistic               | 2025_H1       |
 | ----------------------- | ------------- |
@@ -29,41 +29,43 @@ LiveClin is a contamination-free, continuously updated clinical benchmark for ev
 | Rare cases              | 1,181 (84%)   |
 | Non-rare cases          | 226 (16%)     |
 
-## Results
+## Key Features
 
-![LiveClin_result1](assets/result.png)
+- **Single-command evaluation** — one CLI call handles data download, multi-turn evaluation, and analysis
+- **Multi-turn conversation** — each case is evaluated as a sequential dialogue; later questions build on prior context
+- **Multimodal support** — images sent as URLs (`--image-mode url`) or encoded as base64 from local files (`--image-mode local`)
+- **Fine-grained analysis** — results broken down by rarity, ICD-10 chapter, clinical stage, question position, image modality, and table modality
 
 ## Project Structure
 
 ```
-LiveClin/                          # This GitHub repo
-├── evaluate.py                    # Single CLI entry-point
-├── liveclin/                      # Core evaluation package
-│   ├── __init__.py                # EvalConfig dataclass
-│   ├── client.py                  # Async API client (OpenAI-compatible)
-│   ├── runner.py                  # Concurrent evaluation engine
-│   ├── analyzer.py                # Results analysis & CLI summary
-│   ├── data.py                    # HuggingFace data download & JSONL loading
-│   └── utils.py                   # Answer extraction & prompt formatting
+LiveClin/
+├── evaluate.py                    # CLI entry-point
+├── liveclin/                      # Core package
+│   ├── __init__.py                #   EvalConfig dataclass
+│   ├── client.py                  #   Async API client (shared connection pool)
+│   ├── runner.py                  #   Multi-turn evaluation engine
+│   ├── analyzer.py                #   Fine-grained results analysis
+│   ├── data.py                    #   HuggingFace download & JSONL loading
+│   └── utils.py                   #   Prompt formatting & answer extraction
 ├── scripts/
-│   └── serve_sglang.py            # SGLang deployment helper
+│   ├── serve_sglang.py            # SGLang deployment helper
+│   └── test_vision.py             # Vision capability smoke test
 ├── requirements.txt
-├── assets/
-├── LICENSE
 └── README.md
-
-AQ-MedAI/LiveClin (HuggingFace)   # Dataset repo (data + images)
-└── data/
-    ├── demo/                      # 14-case preview subset
-    ├── 2025_H1/                   # Full 2025-H1 benchmark
-    │   ├── 2025_H1.jsonl
-    │   └── image/
-    └── 2025_H2/                   # (future)
 ```
+
+
+
+## Results
+
+Performance comparison of representative models on LiveClin 2025_H1 (question accuracy %):
+
+![LiveClin_result1](assets/result.png)
 
 ## Quick Start
 
-### 1. Setup
+### 1. Install
 
 ```bash
 git clone https://github.com/AQ-MedAI/LiveClin.git
@@ -73,10 +75,10 @@ pip install -r requirements.txt
 
 ### 2. Evaluate
 
-A single command downloads the data (if needed) and runs the full evaluation:
+A single command downloads the dataset (on first run) and runs the full pipeline:
 
 ```bash
-# Evaluate via a remote API (images sent as URLs)
+# Remote API — images sent as URLs
 python evaluate.py \
     --model gpt-4o \
     --api-base https://api.openai.com/v1 \
@@ -84,102 +86,129 @@ python evaluate.py \
     --image-mode url
 ```
 
+For locally-served models (e.g. via SGLang), `--api-key` can be omitted:
+
 ```bash
-# Evaluate a locally-served model (images sent as base64)
 python evaluate.py \
     --model Qwen2.5-VL-7B-Instruct \
     --api-base http://localhost:8000/v1 \
-    --api-key token \
     --image-mode local
 ```
 
-The script will:
-1. Auto-download the dataset from [HuggingFace](https://huggingface.co/datasets/AQ-MedAI/LiveClin) on first run
-2. Run concurrent evaluation across all clinical cases
-3. Print a brief summary to the terminal
-4. Save detailed results to a JSON file (default: `results/<model>_<dataset>.json`)
+What happens:
+1. The dataset is auto-downloaded from [HuggingFace](https://huggingface.co/datasets/AQ-MedAI/LiveClin) (only the requested config, cached for future runs)
+2. All cases are evaluated concurrently via multi-turn conversation
+3. A structured summary is printed to the terminal
+4. Detailed results with fine-grained analysis are saved to JSON
 
-### CLI Options
+Example terminal output:
+
+```
+============================================================
+  LiveClin Results: gpt-4o (2025_H1)
+============================================================
+  Question Accuracy:  5230/6605 (79.2%)
+  Case Accuracy:      449/1407 (31.9%)
+------------------------------------------------------------
+  By Rarity:
+    Rare         (1181 cases)  Q-Acc 79.3%  C-Acc 32.2%
+    Unrare       ( 226 cases)  Q-Acc 78.6%  C-Acc 30.5%
+------------------------------------------------------------
+  By Clinical Stage:
+    Presentation & Assessment      (1618 MCQs)  Q-Acc 77.8%
+    Diagnosis & Interpretation     (2168 MCQs)  Q-Acc 75.0%
+    Therapeutic Strategy           (1601 MCQs)  Q-Acc 83.6%
+    Complication Management        ( 184 MCQs)  Q-Acc 76.1%
+    Follow-up                      ( 391 MCQs)  Q-Acc 86.2%
+------------------------------------------------------------
+  By Image Modality:
+    CT                   ( 832 MCQs)  Q-Acc 76.4%
+    MRI                  ( 621 MCQs)  Q-Acc 78.2%
+    Clinical Photo       ( 504 MCQs)  Q-Acc 74.1%
+    ...
+============================================================
+```
+
+### 3. Optional: Test Vision
+
+Verify the model can see images before running a full evaluation:
+
+```bash
+python scripts/test_vision.py \
+    --model gpt-4o \
+    --api-base https://api.openai.com/v1 \
+    --api-key sk-xxx
+```
+
+### 4. Optional: Self-Hosted Models
+
+Deploy your own model with [SGLang](https://github.com/sgl-project/sglang) to expose an OpenAI-compatible API:
+
+```bash
+# Terminal 1 — start the server
+python scripts/serve_sglang.py \
+    --model-path /path/to/your-model \
+    --tp 2 --dp 4 --port 8000
+
+# Terminal 2 — evaluate
+python evaluate.py \
+    --model your-model-name \
+    --api-base http://localhost:8000/v1 \
+    --image-mode local
+```
+
+## CLI Reference
 
 | Flag            | Description                              | Default   |
 | --------------- | ---------------------------------------- | --------- |
 | `--model`       | Model identifier (required)              | —         |
 | `--api-base`    | API base URL (required)                  | —         |
-| `--api-key`     | API key (required)                       | —         |
+| `--api-key`     | API key (omit for local deployments)     | `token`   |
 | `--image-mode`  | `url` or `local` (required)              | —         |
 | `--dataset`     | Dataset config name                      | `2025_H1` |
-| `--concurrency` | Max concurrent evaluations               | `50`      |
+| `--concurrency` | Max concurrent case evaluations          | `100`     |
 | `--output`      | Output JSON path                         | auto      |
-| `--resume`      | Resume from existing results             | off       |
+| `--resume`      | Resume and retry failed cases            | off       |
+| `--max-retries` | Max retries per API call                 | `5`       |
 | `--temperature` | Sampling temperature                     | `0.0`     |
 | `--max-tokens`  | Max tokens per response                  | `16384`   |
-| `--data-dir`    | Local data directory                     | `data`    |
+| `--verbose`     | Print per-MCQ retry details              | off       |
+| `--data-dir`    | Root directory for auto-downloaded data  | `data`    |
 | `--jsonl-path`  | Override: direct path to JSONL file      | —         |
 | `--image-root`  | Override: direct path to image directory | —         |
 
-#### Data Path Resolution
+## Data
 
-Data paths are resolved with the following priority (highest first):
+### Auto-Download (Default)
 
-1. **`--jsonl-path` / `--image-root`** — Directly specify the JSONL file and image directory. Skips auto-download entirely. Useful when you already have the data locally.
-2. **`--data-dir`** — Change the root directory for auto-download (e.g. `--data-dir /mnt/datasets`). The internal directory structure is managed automatically.
-3. **Default** — No path arguments needed. The dataset is auto-downloaded from HuggingFace into `data/` on first run.
+No extra steps needed. On first run, only the requested dataset config (e.g. `2025_H1`) is downloaded from HuggingFace and cached locally in `data/`.
 
-```bash
-# Example: use your own local data
-python evaluate.py \
-    --model gpt-4o \
-    --api-base https://api.openai.com/v1 \
-    --api-key sk-xxx \
-    --image-mode local \
-    --jsonl-path /path/to/your/2025_H1.jsonl \
-    --image-root /path/to/your/images/
-```
+### Manual Download
 
-### 3. Deploy Your Own Model (Optional)
-
-If you want to evaluate your own model, deploy it with [SGLang](https://github.com/sgl-project/sglang) to expose an OpenAI-compatible API:
+For offline use or shared storage, download the dataset yourself:
 
 ```bash
-# Terminal 1: start the model server
-python scripts/serve_sglang.py \
-    --model-path /path/to/your-model \
-    --tp 2 --dp 4 --port 8000
+# Via git (requires git-lfs)
+git lfs install
+git clone https://huggingface.co/datasets/AQ-MedAI/LiveClin /path/to/liveclin-data
 
-# Terminal 2: run evaluation
-python evaluate.py \
-    --model your-model-name \
-    --api-base http://localhost:8000/v1 \
-    --api-key token \
-    --image-mode local
+# Or via Python
+python -c "from huggingface_hub import snapshot_download; snapshot_download('AQ-MedAI/LiveClin', repo_type='dataset', local_dir='/path/to/liveclin-data')"
 ```
 
-## Output Format
+Then point the evaluator to your data:
 
-Results are saved as a single JSON file with the following structure:
+```bash
+# Option 1: set the data root (auto-resolves internal structure)
+python evaluate.py ... --data-dir /path/to/liveclin-data
 
-```json
-{
-  "meta": {
-    "model": "gpt-4o",
-    "dataset": "2025_H1",
-    "image_mode": "url",
-    "started_at": "...",
-    "finished_at": "..."
-  },
-  "summary": {
-    "total_cases": 1407,
-    "total_mcqs": 6605,
-    "question_accuracy": ...,
-    "case_accuracy": ...,
-    "by_rarity": { "rare": {...}, "unrare": {...} },
-    "by_chapter": { "Chapter 2: Neoplasms": {...}, ... }
-  },
-  "cases": [...]
-}
+# Option 2: point directly to specific files (highest priority)
+python evaluate.py ... --jsonl-path /path/to/2025_H1.jsonl --image-root /path/to/image/
 ```
 
-## Load Data with `datasets`
+**Path priority**: `--jsonl-path / --image-root` > `--data-dir` > default (`data/`).
+
+### Load with `datasets`
 
 ```python
 from datasets import load_dataset
@@ -194,9 +223,66 @@ for mcq in fp["mcqs"]:
     print(f"  Answer: {mcq['correct_answer']}")
 ```
 
+## Retry & Resume
+
+The framework applies a three-layer retry strategy for robust evaluation under unstable network conditions:
+
+| Layer | Scope           | Behavior                                                                       |
+| ----- | --------------- | ------------------------------------------------------------------------------ |
+| API   | Single API call | Retries on timeout, connection error, rate limit, 5xx with exponential backoff |
+| MCQ   | Single question | If all API retries fail, retries the whole question before abandoning the case |
+| Run   | `--resume` flag | Re-runs only failed cases; successfully completed cases are preserved          |
+
+```bash
+# Resume after a run with transient failures
+python evaluate.py --model gpt-4o --api-base ... --api-key ... --image-mode url --resume
+```
+
+## Output Format
+
+Results are saved as a single JSON file (default: `results/<model>_<dataset>.json`):
+
+```json
+{
+  "meta": {
+    "model": "gpt-4o",
+    "dataset": "2025_H1",
+    "image_mode": "url",
+    "started_at": "...",
+    "finished_at": "..."
+  },
+  "summary": {
+    "total_cases": 1407,
+    "total_mcqs": 6605,
+    "question_accuracy": 0.792,
+    "case_accuracy": 0.319,
+    "by_rarity":          { "rare": {...}, "unrare": {...} },
+    "by_chapter":         { "Chapter 2: Neoplasms": {...}, ... },
+    "by_stage":           { "Presentation & Assessment": {...}, ... },
+    "by_position":        { "Q1": {...}, "Q2": {...}, ... },
+    "by_image_modality":  { "CT": {...}, "MRI": {...}, ... },
+    "by_table_modality":  { "Lab Results": {...}, "Medications": {...}, ... }
+  },
+  "cases": [...]
+}
+```
+
+### Analysis Dimensions
+
+| Dimension             | Granularity  | Categories                                                                                                             |
+| --------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **Rarity**            | 2 groups     | Rare (84%), Non-rare (16%)                                                                                             |
+| **ICD-10 Chapter**    | 16 chapters  | Disease-system-level breakdown                                                                                         |
+| **Clinical Stage**    | 5 categories | Presentation & Assessment, Diagnosis & Interpretation, Therapeutic Strategy, Complication Management, Follow-up        |
+| **Question Position** | Q1–Q6        | Accuracy and error rate by position within each case                                                                   |
+| **Image Modality**    | 11 types     | X-ray, CT, MRI, Ultrasound, Clinical Photo, Endoscopy, Angiography, PET & SPECT, Pathology, Biosignals, Diagram & Plot |
+| **Table Modality**    | 9 types      | Lab Results, Medications, Demographics, Monitoring, Literature, Genomics, Pathology & IHC, Procedures, Staging Systems |
+
+
+
 ## Citation
 
-Please cite the following if you use LiveClin for training or evaluation:
+If you find LiveClin useful, please cite:
 
 ```bibtex
 @misc{wang2026liveclinliveclinicalbenchmark,
