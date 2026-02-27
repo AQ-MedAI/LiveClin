@@ -31,6 +31,9 @@ LiveClin is a contamination-free, continuously updated clinical benchmark for ev
 
 ## Project Structure 🏗️
 
+<details>
+<summary><b>Click to expand</b></summary>
+
 ```
 LiveClin/
 ├── evaluate.py                    # CLI entry-point
@@ -48,17 +51,29 @@ LiveClin/
 └── README.md
 ```
 
+</details>
+
 ## Results 📊
 
-Overall case accuracy, with models grouped by family and ordered reverse-chronologically. Bar textures indicate model type; dashed lines represent physician reference levels.
+<details>
+<summary><b>Overall case accuracy, with models grouped by family and ordered reverse-chronologically</b></summary>
+
+Bar textures indicate model type; dashed lines represent physician reference levels.
 
 ![LiveClin_result1](assets/result.png)
 
+</details>
+
 ## Data Example 🩺
 
-An example from LiveClin simulating the entire clinical pathway. The case progresses from initial assessment to long-term management, with new clinical information and diverse imaging modalities (e.g., X-ray, MRI, pathology, CT) progressively introduced at each key decision point.
+<details>
+<summary><b>An example simulating the entire clinical pathway</b></summary>
+
+The case progresses from initial assessment to long-term management, with new clinical information and diverse imaging modalities (e.g., X-ray, MRI, pathology, CT) progressively introduced at each key decision point.
 
 ![LiveClin_example](assets/example.png)
+
+</details>
 
 ## Quick Start 🚀
 
