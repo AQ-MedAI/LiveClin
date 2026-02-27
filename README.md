@@ -50,7 +50,10 @@ LiveClin/
 
 ## Main Results 📊
 
-Overall case accuracy, showing models grouped by family and ordered reverse chronologically. Bar textures indicate model type and dashed lines represent physician reference levels.
+<details>
+<summary><b>Overall case accuracy, showing models grouped by family and ordered reverse chronologically</b></summary>
+
+Bar textures indicate model type and dashed lines represent physician reference levels.
 
 ![LiveClin_result1](assets/result.png)
 
@@ -111,12 +114,30 @@ The evaluation pipeline will:
 ============================================================
   LiveClin Results: GPT-5 (2025_H1)
 ============================================================
-  Question Accuracy:  5230/6605 (79.2%)
-  Case Accuracy:      449/1407 (31.9%)
+  Question Accuracy:  5179/6605 (78.4%)
+  Case Accuracy:      433/1407 (30.8%)
+------------------------------------------------------------
+  By Chapter (Top-5 Case Accuracy):
+    Chapter 4: Endocrine, nutritional ...     ( 79 cases)  C-Acc 45.6%  Q-Acc 83.3%
+    Chapter 12: Diseases of the skin ...      ( 40 cases)  C-Acc 45.0%  Q-Acc 81.7%
+    ...
+  By Chapter (Bottom-5 Case Accuracy):
+    Chapter 14: Diseases of the geni...       ( 80 cases)  C-Acc 22.5%  Q-Acc 76.5%
+    Chapter 11: Diseases of the dige...       (131 cases)  C-Acc 24.4%  Q-Acc 74.6%
+    ...
+------------------------------------------------------------
+  By Subcategory (Top-5 Case Accuracy):
+    Mental disorders due to substance...      ( 10 cases)  C-Acc 60.0%  Q-Acc 89.1%
+    Dermatitis and eczema (L20-L30)           ( 10 cases)  C-Acc 60.0%  Q-Acc 84.8%
+    ...
+  By Subcategory (Bottom-5 Case Accuracy):
+    Glomerular diseases (N00-N08)             ( 20 cases)  C-Acc 10.0%  Q-Acc 72.3%
+    Renal tubulo-interstitial diseases...     ( 20 cases)  C-Acc 15.0%  Q-Acc 73.1%
+    ...
 ------------------------------------------------------------
   By Rarity:
-    Rare         (1181 cases)  Q-Acc 79.3%  C-Acc 32.2%
-    Unrare       ( 226 cases)  Q-Acc 78.6%  C-Acc 30.5%
+    Rare         (1181 cases)  Q-Acc 78.5%  C-Acc 31.0%
+    Unrare       ( 226 cases)  Q-Acc 78.0%  C-Acc 29.6%
 ------------------------------------------------------------
   By Clinical Stage:
     Presentation & Assessment      (1618 MCQs)  Q-Acc 77.8%
@@ -125,10 +146,20 @@ The evaluation pipeline will:
     Complication Management        ( 184 MCQs)  Q-Acc 76.1%
     Follow-up                      ( 391 MCQs)  Q-Acc 86.2%
 ------------------------------------------------------------
+  By Question Position:
+    Q1     (1407 MCQs)  Q-Acc 78.5%  Err 0.1%
+    Q2     (1407 MCQs)  Q-Acc 76.5%  Err 0.4%
+    ...
+------------------------------------------------------------
   By Image Modality:
     CT                   ( 832 MCQs)  Q-Acc 76.4%
     MRI                  ( 621 MCQs)  Q-Acc 78.2%
     Clinical Photo       ( 504 MCQs)  Q-Acc 74.1%
+    ...
+------------------------------------------------------------
+  By Table Modality:
+    Lab Results          (1023 MCQs)  Q-Acc 79.8%
+    Medications          ( 412 MCQs)  Q-Acc 82.3%
     ...
 ============================================================
 ```
@@ -270,6 +301,7 @@ Results are saved as a single JSON file (default: `results/<model>_<dataset>.jso
     "case_accuracy": ...,
     "by_rarity":          { "rare": {...}, "unrare": {...} },
     "by_chapter":         { "Chapter 2: Neoplasms": {...}, ... },
+    "by_subcategory":     { "Chapter 2: Neoplasms": { "Subcategory A": {...}, ... }, ... },
     "by_stage":           { "Presentation & Assessment": {...}, ... },
     "by_position":        { "Q1": {...}, "Q2": {...}, ... },
     "by_image_modality":  { "CT": {...}, "MRI": {...}, ... },
@@ -281,14 +313,15 @@ Results are saved as a single JSON file (default: `results/<model>_<dataset>.jso
 
 ### Analysis Dimensions
 
-| Dimension             | Granularity  | Categories                                                                                                             |
-| --------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| **Rarity**            | 2 groups     | Rare (84%), Non-rare (16%)                                                                                             |
-| **ICD-10 Chapter**    | 16 chapters  | Disease-system-level breakdown                                                                                         |
-| **Clinical Stage**    | 5 categories | Presentation & Assessment, Diagnosis & Interpretation, Therapeutic Strategy, Complication Management, Follow-up        |
-| **Question Position** | Q1–Q6        | Accuracy and error rate by position within each case                                                                   |
-| **Image Modality**    | 11 types     | X-ray, CT, MRI, Ultrasound, Clinical Photo, Endoscopy, Angiography, PET & SPECT, Pathology, Biosignals, Diagram & Plot |
-| **Table Modality**    | 9 types      | Lab Results, Medications, Demographics, Monitoring, Literature, Genomics, Pathology & IHC, Procedures, Staging Systems |
+| Dimension              | Granularity  | Categories                                                                                                             |
+| ---------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **Rarity**             | 2 groups     | Rare (84%), Non-rare (16%)                                                                                             |
+| **ICD-10 Chapter**     | 16 chapters  | Disease-system-level breakdown                                                                                         |
+| **ICD-10 Subcategory** | 48 groups    | Nested under chapters — fine-grained ICD-10 category breakdown                                                         |
+| **Clinical Stage**     | 5 categories | Presentation & Assessment, Diagnosis & Interpretation, Therapeutic Strategy, Complication Management, Follow-up        |
+| **Question Position**  | Q1–Q6        | Accuracy and error rate by position within each case                                                                   |
+| **Image Modality**     | 11 types     | X-ray, CT, MRI, Ultrasound, Clinical Photo, Endoscopy, Angiography, PET & SPECT, Pathology, Biosignals, Diagram & Plot |
+| **Table Modality**     | 9 types      | Lab Results, Medications, Demographics, Monitoring, Literature, Genomics, Pathology & IHC, Procedures, Staging Systems |
 
 ## Citation 📝
 

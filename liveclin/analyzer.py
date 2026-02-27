@@ -222,6 +222,9 @@ def analyze(results: Dict[str, Any]) -> Dict[str, Any]:
     chapter_stats: Dict[str, Dict[str, int]] = defaultdict(
         lambda: {"cases": 0, "correct_cases": 0, "mcqs": 0, "correct_mcqs": 0}
     )
+    subcategory_stats: Dict[str, Dict[str, Dict[str, int]]] = defaultdict(
+        lambda: defaultdict(lambda: {"cases": 0, "correct_cases": 0, "mcqs": 0, "correct_mcqs": 0})
+    )
     stage_stats: Dict[str, Dict[str, int]] = defaultdict(
         lambda: {"mcqs": 0, "correct_mcqs": 0}
     )
@@ -261,6 +264,14 @@ def analyze(results: Dict[str, Any]) -> Dict[str, Any]:
         ch["correct_cases"] += int(case_correct)
         ch["mcqs"] += n
         ch["correct_mcqs"] += c
+
+        # By subcategory (Level2 nested under chapter)
+        subcategory = case.get("level2", "Unknown")
+        sc = subcategory_stats[chapter][subcategory]
+        sc["cases"] += 1
+        sc["correct_cases"] += int(case_correct)
+        sc["mcqs"] += n
+        sc["correct_mcqs"] += c
 
         # Per-MCQ analysis
         for m in mcqs:
@@ -327,6 +338,14 @@ def analyze(results: Dict[str, Any]) -> Dict[str, Any]:
         for k, v in sorted(table_mod_stats.items(), key=lambda x: -x[1]["mcqs"])
     }
 
+    by_subcategory = {}
+    for chapter in sorted(subcategory_stats.keys()):
+        subs = subcategory_stats[chapter]
+        by_subcategory[chapter] = {
+            k: _block(v)
+            for k, v in sorted(subs.items(), key=lambda x: -x[1]["mcqs"])
+        }
+
     results["summary"] = {
         "total_cases": total_cases,
         "total_mcqs": total_mcqs,
@@ -339,6 +358,7 @@ def analyze(results: Dict[str, Any]) -> Dict[str, Any]:
             k: _block(v)
             for k, v in sorted(chapter_stats.items(), key=lambda x: -x[1]["mcqs"])
         },
+        "by_subcategory": by_subcategory,
         "by_stage": by_stage,
         "by_position": by_position,
         "by_image_modality": by_image,
@@ -349,6 +369,44 @@ def analyze(results: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ── CLI summary printer ─────────────────────────────────────────────────
+
+def _print_top_bottom(
+    ranked: List[Tuple[str, Dict[str, Any]]],
+    label: str,
+    n: int,
+    w: int,
+) -> None:
+    """Print top-N highest and bottom-N lowest case accuracy for a dimension."""
+    total = len(ranked)
+    bottom = ranked[:n]
+    top = list(reversed(ranked[-n:]))
+
+    # Avoid duplicates when there are fewer items than 2*n
+    shown_keys = set()
+
+    print(f"  By {label} (Top-{n} Case Accuracy):")
+    for name, st in top:
+        shown_keys.add(name)
+        short = name[:40] + ("..." if len(name) > 40 else "")
+        nc = st["cases"]
+        ca = st["case_accuracy"]
+        qa = st["question_accuracy"]
+        print(f"    {short:<44} ({nc:>3} cases)  C-Acc {ca:.1%}  Q-Acc {qa:.1%}")
+
+    print(f"  By {label} (Bottom-{n} Case Accuracy):")
+    for name, st in bottom:
+        if name in shown_keys:
+            continue
+        short = name[:40] + ("..." if len(name) > 40 else "")
+        nc = st["cases"]
+        ca = st["case_accuracy"]
+        qa = st["question_accuracy"]
+        print(f"    {short:<44} ({nc:>3} cases)  C-Acc {ca:.1%}  Q-Acc {qa:.1%}")
+
+    remaining = total - len(shown_keys) - sum(1 for name, _ in bottom if name not in shown_keys)
+    if remaining > 0:
+        print(f"    ... and {remaining} more")
+
 
 def print_summary(results: Dict[str, Any]) -> None:
     """Print a concise evaluation summary to the terminal."""
@@ -379,6 +437,25 @@ def print_summary(results: Dict[str, Any]) -> None:
     print(f"  Case Accuracy:      {correct_c}/{total_c} ({c_acc:.1%})")
     print("-" * w)
 
+    # By Chapter — top/bottom 5 by case accuracy (before By Rarity)
+    by_chapter = s.get("by_chapter", {})
+    if by_chapter:
+        ranked = sorted(by_chapter.items(), key=lambda x: x[1]["case_accuracy"])
+        _print_top_bottom(ranked, "Chapter", 5, w)
+        print("-" * w)
+
+    # By Subcategory — top/bottom 5 by case accuracy (flattened from nested structure)
+    by_subcategory = s.get("by_subcategory", {})
+    if by_subcategory:
+        flat: List[Tuple[str, Dict[str, Any]]] = []
+        for subs in by_subcategory.values():
+            for sub_name, sub_stats in subs.items():
+                flat.append((sub_name, sub_stats))
+        if flat:
+            ranked_sub = sorted(flat, key=lambda x: x[1]["case_accuracy"])
+            _print_top_bottom(ranked_sub, "Subcategory", 5, w)
+            print("-" * w)
+
     by_rarity = s.get("by_rarity", {})
     if by_rarity:
         print("  By Rarity:")
@@ -407,20 +484,6 @@ def print_summary(results: Dict[str, Any]) -> None:
             qa = ps["question_accuracy"]
             err = ps["error_rate"]
             print(f"    {pos:<6} ({n:>4} MCQs)  Q-Acc {qa:.1%}  Err {err:.1%}")
-        print("-" * w)
-
-    by_chapter = s.get("by_chapter", {})
-    if by_chapter:
-        print("  By Chapter (top 5):")
-        for i, (ch, cs) in enumerate(by_chapter.items()):
-            if i >= 5:
-                break
-            short = ch[:40] + ("..." if len(ch) > 40 else "")
-            n = cs["cases"]
-            qa = cs["question_accuracy"]
-            print(f"    {short:<44} ({n:>3}) Q-Acc {qa:.1%}")
-        if len(by_chapter) > 5:
-            print(f"    ... and {len(by_chapter) - 5} more chapters")
         print("-" * w)
 
     by_image = s.get("by_image_modality", {})

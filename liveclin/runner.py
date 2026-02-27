@@ -47,6 +47,7 @@ async def evaluate_case(
         "doi": case.get("doi"),
         "rarity": case.get("Rarity", "unknown"),
         "level1": case.get("Level1", ""),
+        "level2": case.get("Level2", ""),
         "total_mcqs": len(mcqs),
         "correct_mcqs": 0,
         "mcqs": [],
