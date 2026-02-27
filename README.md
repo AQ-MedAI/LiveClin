@@ -1,6 +1,13 @@
 # LiveClin
 
-**[ICLR 2026] LiveClin: A Live Clinical Benchmark without Leakage**
+
+**[ICLR 2026] LiveClin: A Live Clinical Benchmark without Leakage** 
+
+
+![LiveClin_logo](assets/logo.png)
+
+= LiveClin is a contamination-free, biannually updated clinical benchmark for evaluating large vision-language models on realistic, **multi-stage clinical case reasoning** with medical images and tables. 
+- Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up. 
 
 <p align="center">
    📃 <a href="https://arxiv.org/abs/2602.16747" target="_blank">Paper</a> &bull;
@@ -14,20 +21,8 @@
 * **[2026.02.21]** [Paper](https://arxiv.org/abs/2602.16747) released.
 * **[2026.02.15]** LiveClin is published!
 
-## Overview 📋
 
-LiveClin is a contamination-free, biannually updated clinical benchmark for evaluating large vision-language models on realistic, **multi-stage clinical case reasoning** with medical images and tables. Each case presents a clinical scenario followed by a sequence of multiple-choice questions (MCQs) that mirror the progressive diagnostic workflow a clinician would follow — from initial presentation through diagnosis, treatment, complication management, and follow-up. 
 
-| Statistic               | 2025_H1       |
-| ----------------------- | ------------- |
-| Clinical cases          | 1,407         |
-| Total MCQs              | 6,605         |
-| MCQs per case           | 3–6 (avg 4.7) |
-| Cases with images       | 1,333 (94.7%) |
-| Total images            | 2,970         |
-| ICD-10 chapters covered | 16            |
-| Rare cases              | 1,181 (84%)   |
-| Non-rare cases          | 226 (16%)     |
 
 ## Project Structure 🏗️
 
@@ -53,7 +48,7 @@ LiveClin/
 
 </details>
 
-## Results 📊
+## Main Results 📊
 
 Overall case accuracy, showing models grouped by family and ordered reverse chronologically. Bar textures indicate model type and dashed lines represent physician reference levels.
 
@@ -110,8 +105,7 @@ The evaluation pipeline will:
 3. Print a structured summary to the terminal
 4. Save detailed results with fine-grained analysis to JSON
 
-<details>
-<summary><b>Example terminal output</b></summary>
+**Example terminal output**:
 
 ```
 ============================================================
